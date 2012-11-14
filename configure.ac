@@ -7,7 +7,7 @@ AC_CONFIG_SRCDIR([src/http-logger.c])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE(http-logger,0.1)
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile scripts/Makefile])
 AC_OUTPUT
 
 # Checks for programs.
