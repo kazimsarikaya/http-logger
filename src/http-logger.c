@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     int res = EXIT_FAILURE, s;
 
 
+    openlog("http-logger", LOG_ODELAY, LOG_DAEMON | LOG_PID);
 
     pid = fork();
     if (pid < 0) {
@@ -48,7 +49,7 @@ int main(int argc, char** argv) {
     }
 
     signal(SIGHUP, signal_handler);
-    signal(SIGTERM, signal_handler); 
+    signal(SIGTERM, signal_handler);
 
 
 service_child_loop:
@@ -59,42 +60,90 @@ service_child_loop:
     } else {
         do {
             tmp = wait(&s);
+            res = WEXITSTATUS(s);
+            if (res == EXIT_FAILURE) {
+                syslog(LOG_ERR, "can not run http-logger\n");
+                goto exit;
+            }
             sleep(1);
         } while (tmp != pid);
         goto service_child_loop;
     }
 
 
-
+exit:
+    closelog();
     return res;
 }
 
 int logger_service(int argc, char** argv) {
 
-    char *dev, *errbuf=NULL;
+    char *dev, *errbuf = NULL;
     bpf_u_int32 mask, net;
     pcap_t *handle = NULL;
-    struct bpf_program *fp=NULL;
+    struct bpf_program *fp = NULL;
     int err = 0;
     int link_type;
-    u_char *buf=NULL;
+    u_char *buf = NULL;
+    char *filter_string;
+    int filter_len;
+    char *conf_file;
+    cfg_t * config;
+    int filtersize;
+    char * filter_host;
+    int i, tmp;
+    struct stat *stat_buf;
 
-    openlog("http-logger", LOG_ODELAY, LOG_DAEMON|LOG_PID);
 
 
-    errbuf=(char*)malloc(sizeof(char)*PCAP_ERRBUF_SIZE);
+    errbuf = (char*) malloc(sizeof (char) *PCAP_ERRBUF_SIZE);
 
     argc--;
     argv++;
 
     if (argc <= 0) {
-        syslog(LOG_ERR, "no device name is given\n");
+        syslog(LOG_ERR, "no configuration file name is given\n");
         err = 1;
         goto exit;
     }
 
 
-    dev = *argv;
+    conf_file = *argv;
+
+    stat_buf = (struct stat*) malloc(sizeof (struct stat));
+    if (stat(conf_file, stat_buf) != 0) {
+        syslog(LOG_ERR, "can not find configuration file %s\n", conf_file);
+        free(stat_buf);
+        err = 1;
+        goto exit;
+    }
+    free(stat_buf);
+
+    config = cfg_init(http_logger_conf_opts, CFGF_NONE);
+    if (cfg_parse(config, conf_file) == CFG_PARSE_ERROR) {
+        syslog(LOG_ERR, "can not parse configuration file\n");
+        err = 1;
+        goto exit;
+    }
+
+    dev = cfg_getstr(config, CFG_DEVICE_PROP);
+
+    filter_len = strlen("(dst port 80)");
+    filter_string = (char*) malloc((filter_len + 1) * sizeof (char));
+    bzero(filter_string, filter_len * sizeof (char) + 1);
+    strcpy(filter_string, "(dst port 80)");
+
+    filtersize = cfg_size(config, CFG_UNLOG_HOSTS_PROP);
+    for (i = 0; i < filtersize; i++) {
+        char filter_buf[1024];
+        filter_host = cfg_getnstr(config, CFG_UNLOG_HOSTS_PROP, i);
+        tmp=sprintf(filter_buf," and (src not %s)",filter_host);
+        filter_string=realloc(filter_string, (filter_len + tmp + 1) * sizeof (char));
+        bzero(filter_string + filter_len, (tmp + 1) * sizeof (char));
+        strcpy(filter_string + filter_len,filter_buf);
+        filter_len+=tmp;
+    }
+    syslog(LOG_INFO,"the filter is %s\n",filter_string);
 
     if (pcap_lookupnet(dev, &net, &mask, errbuf) == -1) {
         syslog(LOG_ERR, "can not get network info of device %s.\nerror is %s\n", dev, errbuf);
@@ -102,14 +151,14 @@ int logger_service(int argc, char** argv) {
         goto exit;
     }
 
-    if ((handle = pcap_open_live(dev, BUFSIZ, 1, 1024, errbuf)) == NULL) {
+    if ((handle = pcap_open_live(dev, BUFSIZ, 1, 4096, errbuf)) == NULL) {
         syslog(LOG_ERR, "the device %s could not be open.\nerror is %s\n", dev, errbuf);
         err = 1;
         goto exit;
     }
-    fp=( struct bpf_program*)malloc(sizeof( struct bpf_program));
-    if (pcap_compile(handle, fp, FILTER_STRING, 0, net) == -1) {
-        syslog(LOG_ERR, "can not compile the filter %s.\nerror is %s\n", FILTER_STRING, pcap_geterr(handle));
+    fp = (struct bpf_program*) malloc(sizeof ( struct bpf_program));
+    if (pcap_compile(handle, fp, filter_string, 0, net) == -1) {
+        syslog(LOG_ERR, "can not compile the filter %s.\nerror is %s\n", filter_string, pcap_geterr(handle));
         err = 1;
         goto exit;
     }
@@ -122,7 +171,7 @@ int logger_service(int argc, char** argv) {
 
     link_type = pcap_datalink(handle);
 
-    buf=(u_char*)malloc(sizeof(u_char)*4);
+    buf = (u_char*) malloc(sizeof (u_char)*4);
     i2c(link_type, buf);
 
     syslog(LOG_INFO, "the http logger configured and will start.\n");
@@ -139,19 +188,19 @@ exit:
     if (handle != NULL) {
         pcap_close(handle);
     }
-    if(errbuf){
-	free(errbuf);
+    if (errbuf) {
+        free(errbuf);
     }
-    if(fp){
-	free(fp);
+    if (fp) {
+        free(fp);
     }
-    if(buf){
+    if (buf) {
         free(buf);
     }
     if (err) {
         goto err;
     }
-   
+
 success:
     return (EXIT_SUCCESS);
 
@@ -206,8 +255,8 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
         return;
     }
 
-    while((log_buffer = (char*) malloc(sizeof (char) *4096))==NULL);
-            
+    while ((log_buffer = (char*) malloc(sizeof (char) *4096)) == NULL);
+
     bzero(log_buffer, 4096);
     log = log_buffer;
 
@@ -221,11 +270,11 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
         char *host, *query;
         int q, h, type = 0;
         char *tmp;
-	
-	host=(char*)malloc(sizeof(char)*1024);
-	query=(char*)malloc(sizeof(char)*3072);
-        bzero(host,1024);
-        bzero(query,3072);
+
+        host = (char*) malloc(sizeof (char) *1024);
+        query = (char*) malloc(sizeof (char) *3072);
+        bzero(host, 1024);
+        bzero(query, 3072);
 
         q = sscanf(payload, "GET %s %*s\r\n", query);
         if (q == 0) {
@@ -259,13 +308,13 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
             log_buffer += offset;
             will_log = 1;
         }
-	free(host);
-	free(query);
+        free(host);
+        free(query);
     }
 
 
     if (will_log) {
-        syslog(LOG_INFO,"%s",log);
+        syslog(LOG_INFO, "%s", log);
 
     }
     free(log);

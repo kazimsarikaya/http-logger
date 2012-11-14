@@ -23,8 +23,9 @@ extern "C" {
 #endif
 #include <netinet/ip.h>
 #include <arpa/inet.h>
+#include <confuse.h>
 
-#define FILTER_STRING "dst port 80"
+
 #ifdef __APPLE__
 #define ETH_HLEN        sizeof(struct ether_header)
 #endif
@@ -47,8 +48,15 @@ extern "C" {
 #define TH_SRC(th)              ((th)->th_sport)
 #define TH_DEST(th)             ((th)->th_dport)
 #endif
+   
+#define CFG_DEVICE_PROP "device"    
+#define CFG_UNLOG_HOSTS_PROP "unlog_hosts"
     
-    
+cfg_opt_t http_logger_conf_opts[]={
+    CFG_STR(CFG_DEVICE_PROP,"eth0",CFGF_NONE),
+    CFG_STR_LIST(CFG_UNLOG_HOSTS_PROP,"{}",CFGF_NONE),
+    CFG_END()
+};    
     
     
 #define i2c(i,ca)               ca[0]=(i & 0xff); ca[1]=((i>>8) & 0xff); ca[2]=((i>>16) & 0xff); ca[3]=((i>>24)& 0xff); 

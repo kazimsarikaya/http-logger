@@ -19,6 +19,7 @@ AC_PROG_CC
 AC_CHECK_HEADERS([arpa/inet.h malloc.h memory.h netinet/in.h stdlib.h syslog.h unistd.h],,
     AC_MSG_ERROR([Couldn't find main headers]))
 AC_CHECK_HEADERS(pcap.h,,AC_MSG_ERROR([Couldn't find pcap.h]))
+AC_CHECK_HEADERS(confuse.h,,AC_MSG_ERROR([Couldn't find confuse.h]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T

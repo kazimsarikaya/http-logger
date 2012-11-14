@@ -22,6 +22,7 @@ src/http-logger
 #cache
 autom4te.cache
 aclocal.m4
+config.h.in
 config.h
 config.log
 config.status
