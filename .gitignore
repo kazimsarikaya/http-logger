@@ -1,0 +1,33 @@
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+
+#output
+src/http-logger
+
+#cache
+autom4te.cache
+aclocal.m4
+config.h
+config.log
+config.status
+configure
+Makefile
+Makefile.in
+
+#project
+nbproject
