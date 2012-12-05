@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#include "geninc.h"
 #include <pcap.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -23,7 +24,6 @@ extern "C" {
 #endif
 #include <netinet/ip.h>
 #include <arpa/inet.h>
-#include <confuse.h>
 
 
 #ifdef __APPLE__
@@ -31,8 +31,7 @@ extern "C" {
 #endif
 
     void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
-    void signal_handler(int sig);
-    int logger_service(int argc, char** argv);
+    int logger_service(phttp_logger_config config);
 
 #define SLL_HLEN        16
 
@@ -48,17 +47,9 @@ extern "C" {
 #define TH_SRC(th)              ((th)->th_sport)
 #define TH_DEST(th)             ((th)->th_dport)
 #endif
-   
-#define CFG_DEVICE_PROP "device"    
-#define CFG_UNLOG_HOSTS_PROP "unlog_hosts"
-    
-cfg_opt_t http_logger_conf_opts[]={
-    CFG_STR(CFG_DEVICE_PROP,"eth0",CFGF_NONE),
-    CFG_STR_LIST(CFG_UNLOG_HOSTS_PROP,"{}",CFGF_NONE),
-    CFG_END()
-};    
-    
-    
+
+
+
 #define i2c(i,ca)               ca[0]=(i & 0xff); ca[1]=((i>>8) & 0xff); ca[2]=((i>>16) & 0xff); ca[3]=((i>>24)& 0xff); 
 #define c2i(i,ca)               i=ca[0] | (ca[1]<<8) | (ca[2]<<16) | (ca[3]<<24)
 

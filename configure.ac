@@ -16,10 +16,11 @@ AC_PROG_CC
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h malloc.h memory.h netinet/in.h stdlib.h syslog.h unistd.h],,
+AC_CHECK_HEADERS([arpa/inet.h malloc.h memory.h netinet/in.h stdlib.h syslog.h unistd.h pthread.h],,
     AC_MSG_ERROR([Couldn't find main headers]))
 AC_CHECK_HEADERS(pcap.h,,AC_MSG_ERROR([Couldn't find pcap.h]))
 AC_CHECK_HEADERS(confuse.h,,AC_MSG_ERROR([Couldn't find confuse.h]))
+AC_CHECK_HEADERS(microhttpd.h,,AC_MSG_ERROR([Couldn't find microhttpd.h]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T
