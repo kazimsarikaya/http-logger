@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# exim    This shell script takes care of starting and stopping http-logger
+#
+# chkconfig: 2345 80 30
+# description: http-logger
+# processname: http-logger
+
+# Source function library.
+. /etc/init.d/functions
+
+# Source networking configuration.
+[ -r /etc/sysconfig/network ] && . /etc/sysconfig/network
+
+# Source exim configureation.
+if [ -f /etc/sysconfig/http-logger ] ; then
+	. /etc/sysconfig/http-logger
+fi
+
+httplogger="/usr/sbin/http-logger"
+
+start() {
+	[ "$EUID" != "0" ] && exit 4
+	[ "${NETWORKING}" = "no" ] && exit 1
+	#[ -f $netlogin ] || exit 5
+
+        # Start daemons.
+        echo -n $"Starting http-logger: "
+        daemon  $httplogger  $OPTIONS 
+        RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && touch /var/lock/subsys/http-logger
+}
+
+stop() {
+	[ "$EUID" != "0" ] && exit 4
+        # Stop daemons.
+        echo -n $"Shutting down http-logger: "
+        killproc http-logger
+	RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && rm -f /var/lock/subsys/http-logger
+}
+
+restart() {
+	stop
+	start
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart)
+	restart
+	;;
+  reload)
+	status http-logger > /dev/null || exit 7
+	echo -n $"Reloading http-logger:"
+	killproc http-logger -HUP
+	echo
+	;;
+  status)
+	status http-logger
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|restart|reload|status}"
+	exit 2
+esac
+
+exit $RETVAL
+
