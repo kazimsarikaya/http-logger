@@ -3,8 +3,8 @@
 #include "authserver.h"
 
 int main(int argc, char** argv) {
-    pid_t sid, pid, tmp;
-    int res1 = EXIT_FAILURE, res2 = EXIT_FAILURE, s;
+    pid_t sid, pid, tmp, pid_logger, pid_auth;
+    int res, s;
     int err = 0;
     phttp_logger_config config;
 
@@ -18,8 +18,8 @@ int main(int argc, char** argv) {
         err = 1;
         goto exit;
     }
-    
-    if((config=readconfig(argv[0]))==NULL){
+
+    if ((config = readconfig(argv[0])) == NULL) {
         syslog(LOG_ERR, "error at parsing configuration file\n");
         err = 1;
         goto exit;
@@ -51,25 +51,26 @@ int main(int argc, char** argv) {
     signal(SIGHUP, signal_handler);
     signal(SIGTERM, signal_handler);
 
-
-service_child_loop:
-
-    pid = fork();
-    if (pid == 0) {
-        res1 = logger_service(config);
-        res2 = auth_service(config);
-    } else {
-        do {
-            tmp = wait(&s);
-            res1 = WEXITSTATUS(s);
-            if (res1 == EXIT_FAILURE) {
-                syslog(LOG_ERR, "can not run http-logger\n");
-                goto exit;
-            }
+    pid_logger = start_service(logger_service, config);
+    pid_auth = start_service(auth_service, config);
+    while (1) {
+        tmp = wait(&s);
+        if (tmp != -1) {
             sleep(1);
-        } while (tmp != pid);
-        goto service_child_loop;
+            res = WEXITSTATUS(s);
+            if (tmp == pid_logger) {
+                syslog(LOG_ERR, "logger died with code %i. re-creating\n", res);
+                pid_logger = start_service(logger_service, config);
+            } else if (tmp == pid_auth) {
+                syslog(LOG_ERR, "authentication died with code %i. re-creating\n", res);
+                pid_auth = start_service(auth_service, config);
+            }
+        } else {
+            syslog(LOG_ERR, "error at waiting child processes. error: %i.\n",
+                    strerror(errno));
+        }
     }
+
 
 
 exit:
@@ -78,6 +79,18 @@ exit:
         return EXIT_FAILURE;
     } else {
         return EXIT_SUCCESS;
+    }
+}
+
+pid_t start_service(start_service_func ssf, phttp_logger_config config) {
+    pid_t pid;
+    int res;
+    pid = fork();
+    if (pid == 0) {
+        res = ssf(config);
+        exit(res);
+    } else {
+        return pid;
     }
 }
 
@@ -94,17 +107,16 @@ void signal_handler(int sig) {
 phttp_logger_config readconfig(char * filename) {
     char *filter_string;
     int filter_len;
-    char *conf_file;
     cfg_t * config;
     int filtersize;
     char * filter_host;
     int i, tmp;
     struct stat *stat_buf;
     int err = 0;
-    phttp_logger_config hl_config=NULL;
+    phttp_logger_config hl_config = NULL;
 
     stat_buf = (struct stat*) malloc(sizeof (struct stat));
-    if (stat(conf_file, stat_buf) != 0) {
+    if (stat(filename, stat_buf) != 0) {
         syslog(LOG_ERR, "can not find configuration file %s\n", filename);
         free(stat_buf);
         err = 1;
@@ -113,7 +125,7 @@ phttp_logger_config readconfig(char * filename) {
     free(stat_buf);
 
     config = cfg_init(http_logger_conf_opts, CFGF_NONE);
-    if (cfg_parse(config, conf_file) == CFG_PARSE_ERROR) {
+    if (cfg_parse(config, filename) == CFG_PARSE_ERROR) {
         syslog(LOG_ERR, "can not parse configuration file\n");
         err = 1;
         goto exit;
@@ -143,7 +155,7 @@ phttp_logger_config readconfig(char * filename) {
     syslog(LOG_INFO, "the filter is %s\n", filter_string);
 exit:
     if (err) {
-        if(hl_config){
+        if (hl_config) {
             free(hl_config);
         }
         return NULL;

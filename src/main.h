@@ -26,6 +26,9 @@ extern "C" {
         CFG_END()
     };
 
+    typedef pid_t (*start_service_func) (phttp_logger_config config) ;
+    pid_t start_service(start_service_func ssf, phttp_logger_config config);
+    
     extern int logger_service(phttp_logger_config config);
     extern int auth_service(phttp_logger_config config);
     
