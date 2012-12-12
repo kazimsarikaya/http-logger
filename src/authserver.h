@@ -14,13 +14,17 @@ extern "C" {
 
 #include "geninc.h"
 #include <microhttpd.h>
+#include <fcntl.h>
+
+#define INDEX_PAGE      "/index.html"
+#define ERROR_404       "<html><head><title>Not Found</title><body>Requested page not found.</body></html>"
 
     int auth_service(phttp_logger_config config);
-    int answer_to_connection (void *cls, struct MHD_Connection *connection, 
-                          const char *url, 
-                          const char *method, const char *version, 
-                          const char *upload_data, 
-                          size_t *upload_data_size, void **con_cls);
+    int answer_to_connection(void *cls, struct MHD_Connection *connection,
+            const char *url,
+            const char *method, const char *version,
+            const char *upload_data,
+            size_t *upload_data_size, void **con_cls);
     void as_signal_handler(int sig);
 #ifdef	__cplusplus
 }

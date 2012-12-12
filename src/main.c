@@ -135,6 +135,7 @@ phttp_logger_config readconfig(char * filename) {
 
     hl_config->device_name = cfg_getstr(config, CFG_DEVICE_PROP);
     hl_config->auth_server_port = cfg_getint(config, CFG_AUTHSERVER_PORT_PROP);
+    hl_config->auth_server_docdir = cfg_getstr(config, CFG_AUTHSERVER_DOCDIR_PROP);
 
     filter_len = strlen("(dst port 80)");
     filter_string = (char*) malloc((filter_len + 1) * sizeof (char));

@@ -36,11 +36,14 @@ extern "C" {
 #define CFG_UNLOG_HOSTS_DEFUALT "{}" 
 #define CFG_AUTHSERVER_PORT_PROP "authserver_port"
 #define CFG_AUTHSERVER_PORT_DEFAULT 8080
+#define CFG_AUTHSERVER_DOCDIR_PROP "authserver_docdir"
+#define CFG_AUTHSERVER_DOCDIR_DEFAULT "/usr/share/http-logger/docdir"
 
     typedef struct __config {
         char * device_name;
         char * filter_string;
         int auth_server_port;
+        char * auth_server_docdir;
     } http_logger_config, *phttp_logger_config;
 
 #ifdef	__cplusplus
