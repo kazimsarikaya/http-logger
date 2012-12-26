@@ -29,7 +29,7 @@ extern "C" {
 #include <pthread.h>
 #include <errno.h>
 
-    
+
 #define CFG_DEVICE_PROP "device"   
 #define CFG_DEVICE_DEFAULT "eth0"
 #define CFG_UNLOG_HOSTS_PROP "unlog_hosts"
@@ -38,12 +38,18 @@ extern "C" {
 #define CFG_AUTHSERVER_PORT_DEFAULT 8080
 #define CFG_AUTHSERVER_DOCDIR_PROP "authserver_docdir"
 #define CFG_AUTHSERVER_DOCDIR_DEFAULT "/usr/share/http-logger/docdir"
+#define CFG_USERNAME_FIELD_PROP "username_field"   
+#define CFG_USERNAME_FIELD_DEFAULT "username"
+#define CFG_PASSWORD_FIELD_PROP "password_field"   
+#define CFG_PASSWORD_FIELD_DEFAULT "password"
 
     typedef struct __config {
         char * device_name;
         char * filter_string;
         int auth_server_port;
         char * auth_server_docdir;
+        char * username_field;
+        char * password_field;
     } http_logger_config, *phttp_logger_config;
 
 #ifdef	__cplusplus
